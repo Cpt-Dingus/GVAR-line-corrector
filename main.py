@@ -4,6 +4,9 @@
 # TODO: Check delta between last frames, abort if it's larger than N
 # i.e. if the last series was 1300 and this one is 1, don't correct it - something's wrong
 
+# TODO: What if a block is missing? It could lead to a perpetual mismatch
+# 1560 - 1561 is skipped - 1560 is still sureshot so 1562 is replaced with 1561, 1561 is set to be sureshot?
+
 import argparse
 import sys
 
@@ -17,7 +20,7 @@ output_file = parser.parse_args().output
 CURRENT_FRAME = 0
 TOTAL_FRAME_COUNT = 0
 # Can be lowered for testing if you don't want the whole file to be processed
-FRAME_LIMIT = 17000
+FRAME_LIMIT = 250000
 LAST_BLOCK_ID = 0
 # Can be set to any value 1-10, where it represents amount of blocks that need to have a matching
 # line counter. 1 is the least reliable, 10 the most (but would rarely occur)
@@ -216,7 +219,7 @@ with open(input_file, "rb") as original_file, open(output_file, "wb") as correct
         # This should cover most cases
 
         # Let the fun begin!
-        if LAST_BLOCK_ID in [10, 11] or header[0] in block_series:
+        if block_series and (LAST_BLOCK_ID in [10, 11] or header[0] in block_series):
 
             # Correction type 1) Consistency based correction
             # Blocks 1-10 are sent sequentially, and every one of these has a line counter. We can check if

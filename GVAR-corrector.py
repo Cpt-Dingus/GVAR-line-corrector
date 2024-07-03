@@ -1,5 +1,21 @@
-# Made by Cpt-Dingus
-# v1.0 - 29/05/2024
+import argparse
+import sys
+
+
+# - CONFIG -
+
+CONSISTENCY_CHECK = 5
+CURRENT_FRAME = 0
+FRAME_LIMIT = 10e7
+
+
+# - VARS -
+
+TOTAL_FRAME_COUNT = 0
+LAST_BLOCK_ID = 0
+
+
+# - TODOS -
 
 # TODO: Check delta between last frames, abort if it's larger than N
 # i.e. if the last series was 1300 and this one is 1, don't correct it - something's wrong
@@ -7,24 +23,29 @@
 # TODO: What if a block is missing? It could lead to a perpetual mismatch
 # 1560 - 1561 is skipped - 1560 is still sureshot so 1562 is replaced with 1561, 1561 is set to be sureshot?
 
-import argparse
-import sys
+# TODO: Use the logging module.
+
+
+# - ARG PARSING -
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-o", "--output")
-parser.add_argument("-i", "--input")
+parser.add_argument("-i", "--input", required=True, help="Input file name")
+parser.add_argument("-o", "--output", required=False, help="Output file name")
 input_file = parser.parse_args().input
 output_file = parser.parse_args().output
 
-# These start at -1 to ensure the first frame is processed
-CURRENT_FRAME = 0
-TOTAL_FRAME_COUNT = 0
-# Can be lowered for testing if you don't want the whole file to be processed
-FRAME_LIMIT = 250000
-LAST_BLOCK_ID = 0
-# Can be set to any value 1-10, where it represents amount of blocks that need to have a matching
-# line counter. 1 is the least reliable, 10 the most (but would rarely occur)
-CONSISTENCY_CHECK = 6
+if not output_file:
+    output_file = "goes_gvar_corrected.gvar"
+
+print(
+    """ 
+-> Made by Cpt-Dingus <-
+-> v1.0.1 - 03/07/2024 <-
+    """
+)
+
+
+# - FUNCTIONS -
 
 
 def exit_gracefully() -> None:
@@ -174,6 +195,8 @@ def modify_relative_scan_count(old_line_header: bytes, new_line_count: int) -> b
     return new_line_header
 
 
+# - MAIN CODE -
+
 with open(input_file, "rb") as original_file, open(output_file, "wb") as corrected_file:
     data = original_file.read()
 
@@ -244,15 +267,15 @@ with open(input_file, "rb") as original_file, open(output_file, "wb") as correct
                 for block_id, block in block_series.items():
                     if block["counter"] == consistent_line_counter + 1:
                         continue
-                    # 3) Get the frame containing the damaged line header
+                    # 1) Get the frame containing the damaged line header
                     incorrect_frame = block["frame"]
 
-                    # 4) Replace the incorrect counter with the correct one
+                    # 2) Replace the incorrect counter with the correct one
                     corrected_line_header = modify_relative_scan_count(
                         incorrect_frame[98:126], consistent_line_counter + 1
                     )
 
-                    # 5) Replace the frame with the corrected one
+                    # 3) Replace the frame with the corrected one
                     corrected_frame = (
                         incorrect_frame[:98]
                         + corrected_line_header
@@ -260,7 +283,7 @@ with open(input_file, "rb") as original_file, open(output_file, "wb") as correct
                     )
                     block["frame"] = corrected_frame
 
-                    # 6) Verify it corrected properly by parsing the corrected frame
+                    # 4) Verify it corrected properly by parsing the corrected frame
                     new_counter = get_line_counter_from_frame(corrected_frame[98:126])
 
                     # Sent for debug purposes
@@ -275,35 +298,35 @@ with open(input_file, "rb") as original_file, open(output_file, "wb") as correct
                         )
 
             # Correction 2) Majority law within block series
-            # We set all of these to the most common one, as it is the likeliest to be true.
+            # We set all the counter to the most common one, as it is the likeliest to be true.
             # This is only used as a fallback if a consistent counter wasn't detected in the
             # last series. It can also be used on its own at basically no difference.
             elif len(set([block["counter"] for block in block_series.values()])) > 1:
                 print(
                     f'> Correction is needed, but a consistent counter wasn\'t detected. Falling back with values: {set([block_series[x]["counter"] for x in block_series])} !!! ---'
                 )
-                # 0) Get the correct counter number
+                # 1) Get the correct counter number
                 correct_counter = max(
                     set([block_series[x]["counter"] for x in block_series]),
                     key=[block_series[x]["counter"] for x in block_series].count,
                 )
 
-                # 1) Iterate through blocks, look for ones with invalid counters
+                # 2) Iterate through blocks, look for ones with invalid counters
                 for block_id, block in block_series.items():
 
-                    # 2) Check if this block has an incorrect counter
+                    # 3) Check if this block has an incorrect counter
                     if block["counter"] != correct_counter:
                         print(f"Block with ID {block_id} is incorrect! Correcting...")
 
-                        # 3) Get the frame containing the damaged line header
+                        # 4) Get the frame containing the damaged line header
                         incorrect_frame = block["frame"]
 
-                        # 4) Replace the incorrect counter with the correct one
+                        # 5) Replace the incorrect counter with the correct one
                         corrected_line_header = modify_relative_scan_count(
                             incorrect_frame[98:126], correct_counter
                         )
 
-                        # 5) Replace the frame with the corrected one
+                        # 6) Replace the frame with the corrected one
                         corrected_frame = (
                             incorrect_frame[:98]
                             + corrected_line_header
@@ -311,7 +334,7 @@ with open(input_file, "rb") as original_file, open(output_file, "wb") as correct
                         )
                         block["frame"] = corrected_frame
 
-                        # 6) Verify it corrected properly by parsing the corrected frame
+                        # 7) Verify it corrected properly by parsing the corrected frame
                         new_counter = get_line_counter_from_frame(
                             corrected_frame[98:126]
                         )
@@ -326,6 +349,7 @@ with open(input_file, "rb") as original_file, open(output_file, "wb") as correct
                             raise ValueError(
                                 "The new counter doesn't match the correct one!"
                             )
+
             # Everything checks out, all values match.
             else:
                 print(f"> Nothing to do with this series.")
@@ -357,8 +381,6 @@ with open(input_file, "rb") as original_file, open(output_file, "wb") as correct
                 )
                 consistent_line_counter = None
 
-            # A series was completed, check if bad counters are present
-
             # After fixing all counters, we can write to the output file
 
             # Writes imagery (Block-ID 1-10)
@@ -382,6 +404,7 @@ with open(input_file, "rb") as original_file, open(output_file, "wb") as correct
             "counter": current_count,  # Current line count
         }
 
+        # Can be uncommented for more verbose logging.
         # print(
         #    f'{"ID:":2s} {header[0]:3d} {"Block count:":2s} {int.from_bytes(header[12:13])} {"Counter:":2s} {current_count}'
         # )

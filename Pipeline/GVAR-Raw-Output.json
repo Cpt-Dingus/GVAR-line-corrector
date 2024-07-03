@@ -1,0 +1,52 @@
+{
+    "goes_gvar":{
+       "name":"GOES GVAR Raw Output",
+       "live":true,
+       "live_cfg":{
+          "pkt_size":32786,
+          "default":[
+             [
+                1,
+                0
+             ],
+             [
+                2,
+                0
+             ]
+          ],
+          "client":[
+             [
+                3,
+                0
+             ]
+          ]
+       },
+       "frequencies":[
+          [
+             "GVAR",
+             1685.7e6
+          ]
+       ],
+       "samplerate":6e6,
+       "work":{
+          "baseband":{
+ 
+          },
+          "soft":{
+             "psk_demod":{
+                "constellation":"bpsk",
+                "symbolrate":2.11e6,
+                "rrc_alpha":0.5,
+                "pll_bw":0.002,
+                "max_sps":3
+             }
+          },
+          "gvar":{
+             "goes_gvar_decoder":{
+ 
+             }
+          }
+       }
+    }
+ }
+ 

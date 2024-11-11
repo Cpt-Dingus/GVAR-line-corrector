@@ -1,5 +1,5 @@
 {
-    "goes_gvar":{
+    "goes_gvar_raw":{
        "name":"GOES GVAR Raw Output",
        "live":true,
        "live_cfg":{

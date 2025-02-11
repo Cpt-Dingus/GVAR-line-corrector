@@ -1,5 +1,8 @@
 # GVAR line corrector
 This python script tries to correct misplaced lines from within a .gvar file by applying majority law error correction to the raw GVAR frames.
+
+## This script is pending to be permanently added to SatDump with [this PR](https://github.com/SatDump/SatDump/pull/924).
+
 Before:
 ![Full disc GVAR crop with several missing lines](https://github.com/Cpt-Dingus/GVAR-line-corrector/assets/100243410/af217faa-6dca-42e2-9c8f-ed22e4391065)
 
